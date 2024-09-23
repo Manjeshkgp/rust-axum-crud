@@ -1,26 +1,26 @@
 use chrono::prelude::*;
-use serde::{Serialize,Deserialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize,Deserialize,Debug,Clone,Copy, sqlx::Type, PartialEq)]
-#[sqlx(type_name="user_role", rename_all="lowercase")]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, sqlx::Type, PartialEq)]
+#[sqlx(type_name = "user_role", rename_all = "lowercase")]
 
-pub enum UserRole{
+pub enum UserRole {
     Admin,
-    User
+    User,
 }
 
 impl UserRole {
-    pub fn to_str(&self)->&str{
+    pub fn to_str(&self) -> &str {
         match self {
             UserRole::Admin => "admin",
-            UserRole::User => "user"
+            UserRole::User => "user",
         }
     }
 }
 
-#[derive(Debug,Deserialize,Serialize, sqlx::FromRow, sqlx::Type, Clone)]
+#[derive(Debug, Deserialize, Serialize, sqlx::FromRow, sqlx::Type, Clone)]
 
-pub struct  User{
+pub struct User {
     pub id: uuid::Uuid,
     pub name: String,
     pub email: String,
@@ -28,9 +28,9 @@ pub struct  User{
     pub role: UserRole,
     pub verified: bool,
     pub verification_token: Option<String>,
-    pub token_expiry: Option<DateTime<Utc>>,
-    #[serde(rename="createdAt")]
-    pub created_at: DateTime<Utc>,
-    #[serde(rename="updatedAt")]
-    pub updated_at: DateTime<Utc>
+    pub token_expires_at: Option<DateTime<Utc>>,
+    #[serde(rename = "createdAt")]
+    pub created_at: Option<DateTime<Utc>>,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: Option<DateTime<Utc>>,
 }
