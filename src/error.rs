@@ -116,4 +116,12 @@ impl fmt::Display for HttpError{
     }
 }
 
+// comment any of the below ones and you will get error on auth.rs router, because these 2 types are there return results
+
 impl std::error::Error for HttpError {}
+
+impl IntoResponse for HttpError {
+    fn into_response(self) -> Response {
+        self.into_http_response()
+    }
+}
