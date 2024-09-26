@@ -2,22 +2,26 @@ mod config;
 mod db;
 mod dtos;
 mod error;
-mod models;
-mod utils;
-mod middleware;
-mod mail;
 mod handler;
+mod mail;
+mod middleware;
+mod models;
+mod routes;
+mod utils;
+
+use std::sync::Arc;
 
 use axum::{
     http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
-        HeaderValue, Method,
+        Method,
     },
-    Extension, Router,
+    Router,
 };
 use config::Config;
 use db::DBClient;
 use dotenv::dotenv;
+use routes::create_router;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::filter::LevelFilter;
@@ -49,19 +53,23 @@ async fn main() {
             std::process::exit(1);
         }
     };
+
+    let origins = [
+        "http://localhost:3000".parse().unwrap(),
+        "https://manjesh.co.in".parse().unwrap(),
+    ];
+
     let cors = CorsLayer::new()
-        .allow_origin("*".parse::<HeaderValue>().unwrap())
+        .allow_origin(origins)
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
         .allow_credentials(true)
-        .allow_methods([Method::GET, Method::POST, Method::PUT]);
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE]);
     let db_client = DBClient::new(pool);
     let app_state = AppState {
         env: config.clone(),
         db_client,
     };
-    let app: Router = Router::new()
-        .layer(Extension(app_state))
-        .layer(cors.clone());
+    let app: Router = create_router(Arc::new(app_state.clone())).layer(cors.clone());
     println!(
         "{}",
         format!("🚀 Server is running on http://localhost:{}", &config.port)

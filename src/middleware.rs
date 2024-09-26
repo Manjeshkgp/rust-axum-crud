@@ -21,7 +21,7 @@ pub struct JWTAuthMiddleware {
     pub user: User,
 }
 
-async fn auth(
+pub async fn auth(
     cookie_jar: CookieJar,
     Extension(app_state): Extension<Arc<AppState>>,
     mut req: Request,

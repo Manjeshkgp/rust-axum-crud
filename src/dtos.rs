@@ -197,3 +197,20 @@ pub struct ResetPasswordRequestDto {
     #[validate(must_match(other = "new_password", message = "new passwords do not match"))]
     pub new_password_confirm: String,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct RequestDeleteUserDto {
+    pub id: Option<String>,
+    pub email: Option<String>,
+    pub verification_token: Option<String>,
+}
+
+impl RequestDeleteUserDto {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.id.is_some() || self.email.is_some() || self.verification_token.is_some() {
+            Ok(())
+        } else {
+            Err("At least one of `id`, `email`, or `verification_token` must be provided.".to_string())
+        }
+    }
+}

@@ -1,8 +1,8 @@
 use crate::{
     db::UserExt,
     dtos::{
-        FilterUserDto, NameUpdateDto, RequestQueryDto, Response, RoleUpdateDto, UserData,
-        UserListResponseDto, UserPasswordUpdateDto, UserResponseDto,
+        FilterUserDto, NameUpdateDto, RequestDeleteUserDto, RequestQueryDto, Response,
+        RoleUpdateDto, UserData, UserListResponseDto, UserPasswordUpdateDto, UserResponseDto,
     },
     error::{ErrorMessage, HttpError},
     middleware::{role_check, JWTAuthMiddleware},
@@ -12,15 +12,16 @@ use crate::{
 };
 use axum::{
     extract::Query,
+    http::StatusCode,
     middleware,
     response::IntoResponse,
-    routing::{get, put},
+    routing::{delete, get, put},
     Extension, Json, Router,
 };
 use std::sync::Arc;
 use validator::Validate;
 
-pub async fn users_handler() -> Router {
+pub fn users_handler() -> Router {
     Router::new()
         .route(
             "/me",
@@ -31,6 +32,12 @@ pub async fn users_handler() -> Router {
         .route(
             "/users",
             get(get_users).layer(middleware::from_fn(|state, req, next| {
+                role_check(state, req, next, vec![UserRole::Admin])
+            })),
+        )
+        .route(
+            "/delete",
+            delete(delete_user).layer(middleware::from_fn(|state, req, next| {
                 role_check(state, req, next, vec![UserRole::Admin])
             })),
         )
@@ -167,4 +174,38 @@ pub async fn update_user_password(
         message: "Password updated successfully".to_string(),
     };
     Ok(Json(response))
+}
+
+pub async fn delete_user(
+    Extension(app_state): Extension<Arc<AppState>>,
+    Query(query_params): Query<RequestDeleteUserDto>,
+) -> Result<impl IntoResponse, HttpError> {
+    let _ = query_params
+        .validate()
+        .map_err(|e| HttpError::bad_request(e.to_string()))?;
+
+    let user_id = query_params
+        .id
+        .as_deref()
+        .and_then(|id| uuid::Uuid::parse_str(id).ok());
+    let user_email = query_params.email.as_deref();
+    let verification_token = query_params.verification_token.as_deref();
+
+    // Execute the DELETE query
+    let result = app_state
+        .db_client
+        .delete_user(user_id, user_email, verification_token)
+        .await
+        .map_err(|e| HttpError::server_error(e.to_string()))?;
+
+    // Check the number of rows affected
+    if result > 0 {
+        let response = Response {
+            status: "success",
+            message: "User deleted successfully".to_string(),
+        };
+        Ok(Json(response))
+    } else {
+        Err(HttpError::new("User not found", StatusCode::NOT_FOUND))
+    }
 }

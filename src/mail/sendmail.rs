@@ -34,13 +34,18 @@ pub async fn send_email(
         )?;
     let creds = Credentials::new(smtp_username.clone(), smtp_password.clone());
 
-    let mailer = SmtpTransport::starttls_relay(&smtp_server)?.credentials(creds).port(smtp_port).build();
+    // SmtpTransport::starttls_relay for tls, normal relay for ssl
+
+    let mailer = SmtpTransport::relay(&smtp_server)?
+        .credentials(creds)
+        .port(smtp_port)
+        .build();
 
     let result = mailer.send(&email);
 
     match result {
         Ok(_) => println!("Email sent successfully!"),
-        Err(e) => println!("Failed to send email: {:?}",e)
+        Err(e) => eprintln!("Failed to send email: {:?}", e),
     }
 
     Ok(())
